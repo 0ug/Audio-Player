@@ -3,6 +3,24 @@ from tkinter import filedialog, messagebox
 
 import winsound, os, subprocess, pythread, sys, platform, shutil
 
+from io import BytesIO
+from requests import get
+from zipfile import ZipFile
+
+def install_ffmpeg():
+    if not os.path.isdir("external"):
+        os.mkdir("external")
+    if not os.path.isdir("tmp"):
+        os.mkdir("tmp")
+    response = get("https://github.com/GyanD/codexffmpeg/releases/download/4.4.1/ffmpeg-4.4.1-essentials_build.zip")
+    zipper = ZipFile(BytesIO(response.content))
+    zipper.extractall("tmp")
+    shutil.move("tmp/ffmpeg-4.4.1-essentials_build/bin/ffmpeg.exe", "external/ffmpeg.exe")
+    shutil.rmtree("tmp")
+
+if not os.path.isfile("external/ffmpeg.exe"):
+    install_ffmpeg()
+
 print("플랫폼: {0}".format(platform.platform()))
 
 if not sys.platform.startswith("win"):
@@ -15,6 +33,7 @@ root.title("오디오 재생기")
 
 def close_thread_and_exit():
     global root
+    winsound.PlaySound(None, winsound.SND_PURGE)
     root.destroy()
 
     try:
