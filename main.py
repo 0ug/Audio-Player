@@ -1,7 +1,7 @@
 from tkinter import *
 from tkinter import filedialog, messagebox
 
-import winsound, os, subprocess, pythread, sys, platform
+import winsound, os, subprocess, pythread, sys, platform, shutil
 
 print("플랫폼: {0}".format(platform.platform()))
 
@@ -51,39 +51,47 @@ def select_file():
     return print(queue)
 
 def play_audio():
-    global root, playing_text
+    global root, queue
+    
+    number = 0
 
-    for files in queue:
-        if str(files).endswith(".mp3"):
+    while True:
+        if number >= len(queue):
+            break
+
+        if str(queue[number]).endswith(".mp3"):
             if not os.path.isdir("Converted"):
+                shutil.rmtree("Converted")
                 os.mkdir("Converted")
-            target_file = files
-            _dest = os.getcwd() + "\\Converted\\" + os.path.basename(str(files).replace("\\", os.sep).replace("mp3", "wav"))
-            path = os.getcwd() + "\\external\\ffmpeg.exe"
-            if not os.path.isfile(_dest):
-                subprocess.call(
-                    [path, "-i", files, _dest]
-                )
-                
-            queue.remove(target_file)
-            queue.append(_dest)
 
-    for queue_ in queue:
-        winsound.PlaySound(queue_, winsound.SND_FILENAME)
-        playing_text.set("Now playing: {0}".format(os.path.basename(str(queue_).replace("\\", os.sep).replace(".wav", ""))))
+            dest = os.getcwd() + "\\Converted\\" + os.path.basename(str(queue[number]).replace("\\", os.sep).replace("mp3", "wav"))
+            path = os.getcwd() + "\\external\\ffmpeg.exe"
+            if not os.path.isfile(dest):
+                subprocess.call(
+                    [path, "-i", queue[number], dest]
+                )
+
+            number += 1
+
+    queue.clear()
+    for files in os.listdir("Converted"):
+        if files.endswith(".wav"):
+            queue.append("Converted/" + files)
+    
+    print(queue)
+
+    for x in queue:
+        winsound.PlaySound(x, winsound.SND_FILENAME)
 
 queue = []
 now_playing = ""
-playing_text = StringVar(value="Now playing: None")
 
 btn_select = Button(root, text="파일 선택하기", command=select_file)
 btn_play = Button(root, text="재생하기", command=lambda: pythread.cTread("play", play_audio))
 queue_list = Listbox(root, width=50, height=20)
-play_label = Label(root, textvariable=playing_text)
 
 root.protocol("WM_DELETE_WINDOW", lambda: close_thread_and_exit())
 btn_play.pack()
 btn_select.pack()
 queue_list.pack()
-play_label.pack()
 root.mainloop()
