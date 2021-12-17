@@ -1,4 +1,4 @@
-ffmpeg, core of this program. Download here: ![ffmpeg](https://github.com/GyanD/codexffmpeg/releases/) <br>
+ffmpeg, core of this program. Download here: [ffmpeg](https://github.com/GyanD/codexffmpeg/releases/) <br>
 
 # IMPORTANT
 Works only Windows. <br>
