@@ -1,113 +1,88 @@
 from tkinter import *
-from tkinter import filedialog, messagebox
 
-import winsound, os, subprocess, pythread, sys, shutil
+import tkinter.messagebox as messagebox
+import tkinter.filedialog as filedialog
 
-from io import BytesIO
-from requests import get
-from zipfile import ZipFile
-
-def purge():
-    global root
-    root.withdraw()
-
-    winsound.PlaySound(None, winsound.SND_FILENAME)
-    exit()
-
-def install_ffmpeg():
-    if not os.path.isdir("external"):
-        os.mkdir("external")
-    if not os.path.isdir("tmp"):
-        os.mkdir("tmp")
-    response = get("https://github.com/GyanD/codexffmpeg/releases/download/4.4.1/ffmpeg-4.4.1-essentials_build.zip")
-    zipper = ZipFile(BytesIO(response.content))
-    zipper.extractall("tmp")
-    shutil.move("tmp/ffmpeg-4.4.1-essentials_build/bin/ffmpeg.exe", "external/ffmpeg.exe")
-    shutil.rmtree("tmp")
-
-if not os.path.isfile("external/ffmpeg.exe"):
-    install_ffmpeg()
-
-if not sys.platform.startswith("win"):
-    raise RuntimeError("Windows가 아닌 다른 플랫폼에서는 사용할 수 없습니다.")
-
-root = Tk()
-root.resizable(False, False)
-root.geometry("480x480")
-root.title("오디오 재생기")
+try:
+    import subprocess, os, requests, zipfile, shutil, io, pathlib, pythread, atexit, sys
+except:
+    exit(2) 
 
 def select_file():
-    global queue, queue_list
-    not_queue = []
-    not_queue.append(queue)
+    global _song_q, _song_var, _song_q_n
     file = filedialog.askopenfilename()
 
-    if file == "":
-        return
+    if file in _song_q: return messagebox.showwarning("경고", "이미 선택된 음악입니다.")
+    if file == "": return None
 
-    if not file.endswith("mp3") or file.endswith("wav"):
-        return messagebox.showerror("오류", "확장자는 mp3와 wav 파일만 지원합니다.")
+    _song_q.append(file)
 
-    if file in queue:
-        return messagebox.showerror("오류", "이미 목록에 있습니다.")
+    _song_q_n.clear()
 
-    if not queue_list.get(0, END) == ():
-        queue_list.delete(0, END)
+    for song in _song_q:
+        name = os.path.basename(
+            str(song).replace("\\", os.sep).replace(pathlib.Path(song).suffix, "")
+        )
+        _song_q_n.append(name)
+        print(f"{name}: {song}")
 
-    queue.append(file)
-    for files in queue:
-        for i in range(len(not_queue)):
-            queue_list.insert(i, files)
-    
-    return not_queue.clear()
+    _song_str = "\n".join(_song_q_n)
 
-def play_audio():
-    global queue, now_playing
-    
-    if os.path.isdir("Converted"):
-        shutil.rmtree("Converted")
+    return _song_var.set(f"Song List\n{_song_str}")
 
-    number = 0
+def install_ffplay():
+    if not os.path.isdir("tmp"):
+        os.mkdir("tmp")
 
-    while True:
-        if number >= len(queue):
-            break
+    if not os.path.isdir("ext"):
+        os.mkdir("ext")
 
-        if str(queue[number]).endswith(".mp3"):
-            if not os.path.isdir("Converted"):
-                os.mkdir("Converted")
+    res = requests.get("https://github.com/GyanD/codexffmpeg/releases/download/4.4.1/ffmpeg-4.4.1-essentials_build.zip")
+    zip = zipfile.ZipFile(io.BytesIO(res.content))
 
-            dest = os.getcwd() + "\\Converted\\" + os.path.basename(str(queue[number]).replace("\\", os.sep).replace("mp3", "wav"))
-            path = os.getcwd() + "\\external\\ffmpeg.exe"
-            if not os.path.isfile(dest):
-                subprocess.call(
-                    [path, "-i", queue[number], dest]
-                )
+    zip.extractall("tmp")
 
-            number += 1
+    shutil.move("tmp/ffmpeg-4.4.1-essentials_build/bin/ffplay.exe", "ext/ffplay.exe")
+    shutil.rmtree("tmp")
+    return None
 
-    queue.clear()
-    for files in os.listdir("Converted"):
-        if files.endswith(".wav"):
-            queue.append(os.getcwd() + "\\Converted\\" + files)
-    
-    for x in queue:
-        now_playing.set("Now playing: " + os.path.basename(str(x).replace("\\", os.sep)))
-        try:
-            winsound.PlaySound(x, winsound.SND_ASYNC)
-        except PermissionError: pass
+def play():
+    global _ffplay, _song_q
+    for queue in _song_q:
+        subprocess.call([_ffplay, queue, "-autoexit", "-nodisp"])
 
-queue = []
-now_playing = StringVar(value="Now playing: None")
+def on_exit():
+    global root
+    root.withdraw()
+    sys.exit(0)
 
-btn_select = Button(root, text="파일 선택하기", command=select_file)
-btn_play = Button(root, text="재생하기", command=lambda: pythread.cTread("play", play_audio))
-queue_list = Listbox(root, width=50, height=20)
-now_play_lab = Label(root, textvariable=now_playing)
+def on_exit_():
+    global root
+    os.system("taskkill /f /im ffplay.exe")    
+    root.destroy()
 
-root.protocol("WM_DELETE_WINDOW", purge)
-btn_play.pack()
-btn_select.pack()
-queue_list.pack()
-now_play_lab.pack()
+atexit.register(on_exit_)
+
+if not os.path.isdir("ext") & os.path.isfile("ext/ffplay.exe"):
+    install_ffplay()
+
+root = Tk()
+root.geometry("265x265")
+root.resizable(False, False)
+root.title("Plpyer")
+
+_song_var = StringVar(value="Song List")
+_ffplay = f"{os.getcwd()}\\ext\\ffplay.exe"
+_song_q = list() # _song_queue = []
+_song_q_n = list() # _song_q_n = []
+
+select_btn = Button(root, text="음악 선택하기", command=select_file)
+play_btn = Button(root, text="음악 재생하기", command=lambda: pythread.cTread("play", play))
+q_lab = Label(root, textvariable=_song_var)
+
+root.protocol("WM_DELETE_WINDOW", on_exit)
+
+select_btn.pack()
+play_btn.pack()
+q_lab.pack()
 root.mainloop()
