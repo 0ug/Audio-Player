@@ -22,7 +22,7 @@ except:
 
 ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
-print("\033[32m" + "Plpyer | Made by poolmanager | https://github.com/poolmanager")
+print("\033[32m" + "Plpyer | 제작: poolmanager | https://github.com/poolmanager")
 
 if not sys.platform.startswith("win"):
     warnings.warn("Windows에서만 작동합니다.", RuntimeWarning, stacklevel=2)
