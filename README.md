@@ -1,5 +1,4 @@
-ffmpeg, core of this program. Download here: [ffmpeg](https://github.com/GyanD/codexffmpeg/releases/) <br>
+ffmpeg 다운로드: [ffmpeg](https://github.com/GyanD/codexffmpeg/releases/) <br>
 
-# IMPORTANT
-Works only Windows. <br>
-You can copy and make remaster version of this program. Anyway, thanks for visiting my github. Have a nice day~
+# 중요
+윈도우에서만 작동합니다.
