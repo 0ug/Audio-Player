@@ -7,5 +7,5 @@
 - pythread | pip install pythread==1.0.2: 1.0.2 <br>
 <br>
 외부 프로그램 <br>
-- [Python](https://python.org/): 3.9.X<br>
-- [FFmpeg](https://github.com/GyanD/codexffmpeg/releases/): 4.4.1
+[Python](https://python.org/): 3.9.X<br>
+[FFmpeg](https://github.com/GyanD/codexffmpeg/releases/): 4.4.1
