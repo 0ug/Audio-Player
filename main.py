@@ -4,7 +4,7 @@ import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 
 import sys
-import pip
+if sys.version[0] != "3": sys.exit(3)
 import os
 
 try:
@@ -21,10 +21,14 @@ try:
     import js2py
     import PIL.Image
 except ImportError:
-    if hasattr(pip, "main"):
-        pip.main(["install", "js2py requests pythread pillow"])
+    if os.path.isfile("requirements.txt"):
+       os.system("pip install -r requirements.txt")
     else:
-        os.system("pip install js2py requests pythread pillow")
+        packages = ["Pillow==8.4.0", "JS2Py==0.71", "pythread==1.0.2", "requests==2.26.0"]
+        for package in packages:
+            os.system(f"pip install {package}")
+
+argv = sys.argv[0] if not " " in sys.argv[0] else '"' + sys.argv[0] + '"'
 
 log = js2py.eval_js(
 """
@@ -92,14 +96,13 @@ def install_ffplay():
 
 def play():
     global _ffplay, _song_q, log, _T_var
-    def wrap():
-        for queue in _song_q:
-            music = "Now playing: {0}".format(os.path.basename(str(queue).replace("\\", os.sep).replace(pathlib.Path(queue).suffix, "")))
-            log(music)
-            _T_var.set(music)
-            subprocess.call([_ffplay, queue, "-nodisp", "-autoexit"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    for queue in _song_q:
+        music = "Now playing: {0}".format(os.path.basename(str(queue).replace("\\", os.sep).replace(pathlib.Path(queue).suffix, "")))
+        log(music)
+        _T_var.set(music)
+        subprocess.call([_ffplay, queue, "-nodisp", "-autoexit"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
-    return pythread.cTread("PlayWrapper", wrap)
+play_wrapper = lambda: pythread.cTread("PlayWrapper", play)
 
 def on_exit():
     global root
@@ -127,7 +130,45 @@ def song_list_():
     _root.mainloop()
 
 def stop():
-    subprocess.call("taskkill /f /im ffplay.exe")    
+    global argv, _song_q
+    subprocess.call("taskkill /f /im ffplay.exe")
+    with io.open("saved.txt", "a", encoding="utf-8") as f:
+        f.write("\n".join(_song_q))
+    os.execl(sys.executable, sys.executable, argv)
+
+def skip():
+    global _song_q, argv
+    subprocess.call("taskkill /f /im ffplay.exe")
+    with io.open("skip.txt", "a", encoding="utf-8") as f:
+        _song_q.append(_song_q.pop(0))
+        f.write("\n".join(_song_q))
+
+    return os.execl(sys.executable, sys.executable, argv)
+
+def load_skip():
+    global _song_q
+    if not os.path.isfile("skip.txt"):
+        return None
+
+    with io.open("skip.txt", "r", encoding="utf-8") as f:
+        lines = [line.rstrip() for line in f]
+    
+    _song_q.extend(lines)
+    play_wrapper()
+        
+    return os.remove("skip.txt")
+
+def load_save():
+    global _song_q
+    if not os.path.isfile("saved.txt"):
+        return None
+
+    with io.open("saved.txt", "r", encoding="utf-8") as f:
+        lines = [line.rstrip() for line in f]
+    
+    _song_q.extend(lines)
+
+    return os.remove("saved.txt")
 
 if not os.path.isdir("ext") & os.path.isfile("ext/ffplay.exe"):
     warning("FFplay를 설치 중입니다. 약간의 시간이 걸릴 수 있습니다.")
@@ -154,10 +195,14 @@ _rgb_t = PIL.Image.open("images/background.png")
 _rgb_img = _rgb_t.convert("RGB")
 r, g, b = _rgb_img.getpixel((1, 1))
 
+load_save()
+load_skip()
+
 select_btn = Button(root, text="음악 선택", command=select_file, bg="white", fg="black")
-play_btn = Button(root, text="음악 재생", command=play, bg="white", fg="black")
+play_btn = Button(root, text="음악 재생", command=play_wrapper, bg="white", fg="black")
 stop_btn = Button(root, text="음악 중지", command=stop, bg="white", fg="black")
 list_btn = Button(root, text="목록 보기", command=song_list_, bg="white", fg="black")
+skip_btn = Button(root, text="스킵 하기", command=skip, bg="white", fg="black")
 song_lab = Label(root, textvariable=_T_var, bg=f"#{r:02x}{g:02x}{b:02x}", fg="white")
 
 root.protocol("WM_DELETE_WINDOW", on_exit)
@@ -166,6 +211,7 @@ select_btn.pack()
 play_btn.pack()
 stop_btn.pack()
 list_btn.pack()
+skip_btn.pack()
 song_lab.pack()
 canvas.pack()
 root.mainloop()
