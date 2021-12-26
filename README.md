@@ -1,2 +1,2 @@
-# 경고
-윈도우에서만 작동합니다.
+# WARNING
+Works only windows.
