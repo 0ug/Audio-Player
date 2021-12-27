@@ -43,6 +43,19 @@ def install_external():
 if not os.path.isfile("ffplay.exe"):
     install_external()
 
+def restart(executable, argv, queue):
+    at_exit()
+    with closing(open("saved_restart.txt", "w")) as f:
+        f.write("\n".join(queue))
+
+    os.execl(executable, executable, argv)
+
+def load_save(queue, root):
+    with closing(open("saved_restart.txt", "r")) as f:
+        queue.extend(f.read().splitlines())
+
+    play(queue, root)
+
 def select(queue):
     file = filedialog.askopenfilename()
 
@@ -69,11 +82,17 @@ def at_destroy():
     subprocess.Popen("taskkill /f /im ffplay.exe")
     exit()
 
+if os.path.isfile("saved_restart.txt"):
+    load_save(queue, root)
+
 select_button = Button(root, text="음악 추가", command=lambda: select(queue))
 play_button = Button(root, text="음악 재생", command=lambda: play(queue, root))
+restart_button = Button(root, text="음악 다시 재생하기", command=lambda: restart(sys.executable, f'"{sys.argv[0]}"', queue))
 
 root.protocol("WM_DELETE_WINDOW", at_destroy)
 
-select_button.pack()
-play_button.pack()
+select_button.pack(side=TOP, anchor=SW)
+play_button.pack(side=TOP, anchor=SW)
+restart_button.pack(side=TOP, anchor=SW)
+
 root.mainloop()
